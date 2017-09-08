@@ -40,7 +40,7 @@ def err_print(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 parser = argparse.ArgumentParser(description='rwgps tool')
-parser.add_argument('--backup')
+parser.add_argument('--backup', required=True)
 parser.add_argument('--email', type=str, required=True)
 parser.add_argument('--password', type=str, default=None)
 parser.add_argument('--apikey', type=str, required=True)
