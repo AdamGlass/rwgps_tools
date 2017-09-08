@@ -91,7 +91,9 @@ if r.status_code != 200:
 club_detail = r.json()
 dump_to_file(r.text, 'club_detail.json')
 
-r = request_rwgps('clubs/{0}/routes.json'.format(club_id), auth_params)
+routes_params = auth_params.copy()
+routes_params['limit'] = 2000
+r = request_rwgps('clubs/{0}/routes.json'.format(club_id), routes_params)
 if r.status_code != 200:
     err_print('unable to get club routes')
     exit(1)
