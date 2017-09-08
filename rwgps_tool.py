@@ -31,6 +31,11 @@ def get_club_id_by_name(clubs, club_name):
             return c['id']
     return None
 
+# deliberately not interpreting the data
+def dump_to_file(buf, name):
+    with open(name, "w") as file:
+        file.write(buf)
+
 def err_print(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -84,12 +89,14 @@ if r.status_code != 200:
     err_print('unable to get club details')
     exit(1)
 club_detail = r.json()
+dump_to_file(r.text, 'club_detail.json')
 
 r = request_rwgps('clubs/{0}/routes.json'.format(club_id), auth_params)
 if r.status_code != 200:
     err_print('unable to get club routes')
     exit(1)
 club_routes = r.json()
+dump_to_file(r.text, 'club_routes.json')
 
 route_details = {}
 
@@ -99,6 +106,4 @@ for cr in club_routes['results']:
     if r.status_code != 200:
         err_print('unable to get route {0}'.format(route_id))
     else:
-        route_details[route_id] = r.json()
-
-print(route_details)
+        dump_to_file(r.text, '{0}.json'.format(route_id))
