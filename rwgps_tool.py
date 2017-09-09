@@ -31,6 +31,50 @@ def get_club_id_by_name(clubs, club_name):
             return c['id']
     return None
 
+def backup_club():
+    r = request_rwgps('users/{0}/clubs.json'.format(user_id), auth_params)
+    if r.status_code != 200:
+        err_print('unable to retrieve your clubs')
+        exit(1)
+    clubs = r.json()
+    
+    if args.club_name == None and args.club_id == None:
+        print('Clubs:')
+        for c in clubs['results']:
+            print('\t{0} ({1})'.format(c['name'], c['id']))
+        exit(1)
+    
+    if args.club_name:
+        club_id = get_club_id_by_name(clubs['results'], args.club_name)
+    else:
+        club_id = args.club_id
+    
+    r = request_rwgps('clubs/{0}.json'.format(club_id), auth_params)
+    if r.status_code != 200:
+        err_print('unable to get club details')
+        exit(1)
+    club_detail = r.json()
+    dump_to_file(r.text, 'club_detail.json')
+    
+    routes_params = auth_params.copy()
+    routes_params['limit'] = 2000
+    r = request_rwgps('clubs/{0}/routes.json'.format(club_id), routes_params)
+    if r.status_code != 200:
+        err_print('unable to get club routes')
+        exit(1)
+    club_routes = r.json()
+    dump_to_file(r.text, 'club_routes.json')
+    
+    route_details = {}
+
+    for cr in club_routes['results']:
+        route_id = cr['id']
+        r = request_rwgps('routes/{0}.json'.format(route_id), auth_params)
+        if r.status_code != 200:
+            err_print('unable to get route {0}'.format(route_id))
+        else:
+            dump_to_file(r.text, '{0}.json'.format(route_id))
+    
 # deliberately not interpreting the data
 def dump_to_file(buf, name):
     with open(name, "w") as file:
@@ -40,7 +84,7 @@ def err_print(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 parser = argparse.ArgumentParser(description='rwgps tool')
-parser.add_argument('--backup', required=True)
+parser.add_argument('--backupclub', action='store_true', required=True)
 parser.add_argument('--email', type=str, required=True)
 parser.add_argument('--password', type=str, default=None)
 parser.add_argument('--apikey', type=str, required=True)
@@ -67,45 +111,6 @@ user_id = user['id']
 auth_params = base_params.copy()
 auth_params['auth_token'] = user['auth_token']
 
-r = request_rwgps('users/{0}/clubs.json'.format(user_id), auth_params)
-if r.status_code != 200:
-    err_print('unable to retrieve your clubs')
-    exit(1)
-clubs = r.json()
+if args.backupclub:
+    backup_club()
 
-if args.club_name == None and args.club_id == None:
-    print('Clubs:')
-    for c in clubs['results']:
-        print('\t{0} ({1})'.format(c['name'], c['id']))
-    exit(1)
-
-if args.club_name:
-    club_id = get_club_id_by_name(clubs['results'], args.club_name)
-else:
-    club_id = args.club_id
-
-r = request_rwgps('clubs/{0}.json'.format(club_id), auth_params)
-if r.status_code != 200:
-    err_print('unable to get club details')
-    exit(1)
-club_detail = r.json()
-dump_to_file(r.text, 'club_detail.json')
-
-routes_params = auth_params.copy()
-routes_params['limit'] = 2000
-r = request_rwgps('clubs/{0}/routes.json'.format(club_id), routes_params)
-if r.status_code != 200:
-    err_print('unable to get club routes')
-    exit(1)
-club_routes = r.json()
-dump_to_file(r.text, 'club_routes.json')
-
-route_details = {}
-
-for cr in club_routes['results']:
-    route_id = cr['id']
-    r = request_rwgps('routes/{0}.json'.format(route_id), auth_params)
-    if r.status_code != 200:
-        err_print('unable to get route {0}'.format(route_id))
-    else:
-        dump_to_file(r.text, '{0}.json'.format(route_id))
