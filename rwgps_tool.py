@@ -31,7 +31,7 @@ def get_club_id_by_name(clubs, club_name):
             return c['id']
     return None
 
-def backup_club():
+def iter_club(dump_club, dump_routes, dump_route):
     r = request_rwgps('users/{0}/clubs.json'.format(user_id), auth_params)
     if r.status_code != 200:
         err_print('unable to retrieve your clubs')
@@ -54,7 +54,7 @@ def backup_club():
         err_print('unable to get club details')
         exit(1)
     club_detail = r.json()
-    dump_to_file(r.text, 'club_detail.json')
+    dump_club(club_detail, r.text)
     
     routes_params = auth_params.copy()
     routes_params['limit'] = 2000
@@ -63,7 +63,7 @@ def backup_club():
         err_print('unable to get club routes')
         exit(1)
     club_routes = r.json()
-    dump_to_file(r.text, 'club_routes.json')
+    dump_routes(club_routes, r.text)
     
     route_details = {}
 
@@ -73,12 +73,24 @@ def backup_club():
         if r.status_code != 200:
             err_print('unable to get route {0}'.format(route_id))
         else:
-            dump_to_file(r.text, '{0}.json'.format(route_id))
+            dump_route(route_id, r.json(), r.text)
     
 # deliberately not interpreting the data
 def dump_to_file(buf, name):
     with open(name, "w") as file:
         file.write(buf)
+
+def backup_club():
+    def dump_club(json, text):
+        dump_to_file(text, 'club_detail.json')
+
+    def dump_routes(json, text):
+        dump_to_file(text, 'club_routes.json')
+
+    def dump_route(route_id, json, text):
+        dump_to_file(text, '{0}.json'.format(route_id))
+
+    iter_club(dump_club, dump_routes, dump_route)
 
 def err_print(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
