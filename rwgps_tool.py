@@ -2,6 +2,7 @@ import os
 import sys
 import getpass
 import argparse
+import csv
 
 import requests
 
@@ -63,7 +64,10 @@ def iter_club(dump_club, dump_routes, dump_route):
         err_print('unable to get club routes')
         exit(1)
     club_routes = r.json()
-    dump_routes(club_routes, r.text)
+    deep = dump_routes(club_routes, r.text)
+
+    if deep == False:
+        return
     
     route_details = {}
 
@@ -86,9 +90,26 @@ def backup_club():
 
     def dump_routes(json, text):
         dump_to_file(text, 'club_routes.json')
+        return True
 
     def dump_route(route_id, json, text):
         dump_to_file(text, '{0}.json'.format(route_id))
+
+    iter_club(dump_club, dump_routes, dump_route)
+
+def report_club():
+    def dump_club(json, text):
+        pass
+
+    def dump_routes(json, text):
+        results = json['results']
+        csvwriter = csv.writer(sys.stdout)
+        for r in results:
+            csvwriter.writerow([r['id'], r['name'], r['distance'], r['elevation_gain'], r['elevation_loss'], r['locality'], r['description'], ])
+        return False
+
+    def dump_route(route_id, json, text):
+        pass
 
     iter_club(dump_club, dump_routes, dump_route)
 
@@ -96,7 +117,9 @@ def err_print(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 parser = argparse.ArgumentParser(description='rwgps tool')
-parser.add_argument('--backupclub', action='store_true', required=True)
+action_group = parser.add_mutually_exclusive_group(required=True)
+action_group.add_argument('--backup', action='store_true')
+action_group.add_argument('--report', action='store_true')
 parser.add_argument('--email', type=str, required=True)
 parser.add_argument('--password', type=str, default=None)
 parser.add_argument('--apikey', type=str, required=True)
@@ -123,6 +146,8 @@ user_id = user['id']
 auth_params = base_params.copy()
 auth_params['auth_token'] = user['auth_token']
 
-if args.backupclub:
+if args.backup:
     backup_club()
 
+if args.report:
+    report_club()
